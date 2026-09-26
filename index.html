@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tangkap Mufradat: Alat Sekolahku</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Arabic clarity & Playful typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,400&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Fredoka', cursive, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .font-arabic {
+            font-family: 'Amiri', serif;
+        }
+        /* Custom game screen background gradient */
+        .bg-playful {
+            background: linear-gradient(135deg, #a8ff78 0%, #78ffd6 100%);
+        }
+        .bg-sky-pattern {
+            background: linear-gradient(180deg, #38ef7d 0%, #11998e 100%);
+        }
+        /* Falling Card Style */
+        .falling-card {
+            transition: transform 0.1s ease-out;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            cursor: pointer;
+        }
+        .falling-card:active {
+            transform: scale(0.95);
+        }
+        /* Screen shake animation for incorrect answers */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-12px); }
+            40% { transform: translateX(12px); }
+            60% { transform: translateX(-8px); }
+            80% { transform: translateX(8px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        /* Bounce animation for correct answers */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop {
+            animation: pop 0.3s ease-in-out;
+        }
+        /* Floating background elements */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+        }
+        .animated-float {
+            animation: float 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-800 h-screen w-screen overflow-hidden flex flex-col justify-center items-center">
+
+    <!-- Main Game Wrapper (Responsive Phone/Tablet Aspect Ratio) -->
+    <div id="appContainer" class="relative w-full max-w-md h-full max-h-[900px] bg-sky-pattern shadow-2xl overflow-hidden flex flex-col md:rounded-3xl border-4 border-yellow-300">
+
+        <!-- ================= 1. START SCREEN ================= -->
+        <div id="startScreen" class="absolute inset-0 z-30 bg-gradient-to-b from-teal-400 via-emerald-400 to-green-500 p-6 flex flex-col justify-between items-center text-center">
+            
+            <div class="mt-6 space-y-3 animated-float">
+                <span class="text-6xl drop-shadow-md">🎒📚✏️</span>
+                <h1 class="text-3xl font-extrabold text-white tracking-wide drop-shadow-lg leading-tight">
+                    TANGKAP MUFRADAT
+                </h1>
+                <p class="text-yellow-200 font-semibold text-lg bg-teal-800/40 px-4 py-1 rounded-full inline-block border border-yellow-300/50">
+                    Materi: Alat Sekolahku (الأَدَوَاتُ المَدْرَسِيَّةُ)
+                </p>
+            </div>
+
+            <!-- Avatar & Player Input Card -->
+            <div class="w-full bg-white/95 backdrop-blur-sm p-6 rounded-3xl shadow-xl border-4 border-amber-300 space-y-4">
+                <label for="playerNameInput" class="block text-emerald-800 font-bold text-lg">
+                    Siapa Nama Teman Cilik? 🌟
+                </label>
+                <input type="text" id="playerNameInput" placeholder="Masukkan namamu di sini..." 
+                    class="w-full px-4 py-3 text-center text-xl font-bold rounded-2xl border-2 border-emerald-400 focus:outline-none focus:ring-4 focus:ring-yellow-300 text-emerald-900 shadow-inner"
+                    maxlength="20">
+                
+                <div class="text-xs text-emerald-700 bg-emerald-50 p-3 rounded-xl leading-relaxed text-left border border-emerald-200">
+                    💡 <b>Cara Bermain:</b> Perhatikan benda yang diminta di zona bawah! Klik/Tap kartu Bahasa Arab yang jatuh dari atas yang cocok dengan gambarnya sebelum menyentuh dasar!
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button id="btnStart" onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-teal-950 text-2xl font-black rounded-2xl shadow-lg transform active:scale-95 transition border-b-4 border-amber-600 tracking-wider">
+                🚀 MULAI BERMAIN!
+            </button>
+        </div>
+
+        <!-- ================= 2. GAMEPLAY SCREEN ================= -->
+        <div id="gameScreen" class="relative w-full h-full flex flex-col justify-between hidden">
+            
+            <!-- Top HUD Bar -->
+            <div class="w-full bg-teal-900/80 backdrop-blur-md px-4 py-3 flex justify-between items-center text-white border-b-2 border-yellow-300 z-20">
+                <!-- Score -->
+                <div class="flex items-center space-x-1 bg-teal-800/80 px-3 py-1 rounded-xl border border-teal-600">
+                    <span class="text-xl">⭐</span>
+                    <div>
+                        <div class="text-[10px] text-teal-200 uppercase font-bold">Skor</div>
+                        <div id="hudScore" class="text-xl font-black text-yellow-300">0</div>
+                    </div>
+                </div>
+
+                <!-- Timer -->
+                <div class="flex items-center space-x-1 bg-teal-800/80 px-4 py-1 rounded-xl border border-teal-600">
+                    <span class="text-xl">⏱️</span>
+                    <div>
+                        <div class="text-[10px] text-teal-200 uppercase font-bold">Waktu</div>
+                        <div id="hudTimer" class="text-xl font-black text-white">60s</div>
+                    </div>
+                </div>
+
+                <!-- Lives -->
+                <div class="flex flex-col items-end">
+                    <div class="text-[10px] text-teal-200 uppercase font-bold">Nyawa</div>
+                    <div id="hudLives" class="flex space-x-1 text-xl">
+                        <span>❤️</span><span>❤️</span><span>❤️</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Falling Cards Container Area -->
+            <div id="playArea" class="relative flex-1 w-full overflow-hidden">
+                <!-- Floating Feedback Popups will append here dynamically -->
+            </div>
+
+            <!-- Bottom Target Zone -->
+            <div class="w-full bg-gradient-to-t from-emerald-950 via-teal-900 to-teal-900/90 p-4 border-t-4 border-yellow-400 z-20 flex flex-col items-center justify-center shadow-2xl">
+                <span class="text-xs text-yellow-300 uppercase tracking-widest font-bold mb-1">
+                    🎯 Cari & Tangkap Kata Ini:
+                </span>
+                
+                <div id="targetBox" class="w-full bg-white/95 rounded-2xl p-3 flex items-center justify-center space-x-4 border-2 border-amber-300 shadow-md">
+                    <span id="targetEmoji" class="text-5xl animate-bounce">🎒</span>
+                    <div class="text-left">
+                        <div class="text-xs text-emerald-600 font-bold uppercase">Nama Benda:</div>
+                        <div id="targetIndo" class="text-2xl font-black text-emerald-900 leading-none">TAS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 3. MODAL / END SCREEN ================= -->
+        <div id="endModal" class="absolute inset-0 z-40 bg-black/80 backdrop-blur-sm p-4 flex flex-col justify-center items-center hidden">
+            
+            <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl border-4 border-yellow-400 relative overflow-y-auto max-h-[90vh]">
+                
+                <!-- Win Header -->
+                <div id="modalWinHeader" class="hidden">
+                    <div class="text-5xl mb-2">🎉🏆✨</div>
+                    <h2 class="text-2xl font-black text-emerald-700">MasyaAllah, Luar Biasa!</h2>
+                    <p class="text-sm text-slate-600 mt-1">Kamu sungguh hebat dan tangkas!</p>
+                </div>
+
+                <!-- Lose Header -->
+                <div id="modalLoseHeader" class="hidden">
+                    <div class="text-5xl mb-2">💪🌟😊</div>
+                    <h2 class="text-2xl font-black text-amber-600">Tetap Semangat!</h2>
+                    <p class="text-sm text-slate-600 mt-1">Jangan menyerah ya! Yuk latihan lagi agar Bahasa Arabmu makin hebat!</p>
+                </div>
+
+                <!-- Final Score Badge -->
+                <div class="my-4 bg-emerald-50 rounded-2xl p-3 border border-emerald-200">
+                    <span class="text-xs font-bold text-emerald-800 uppercase">Skor Akhir Kamu</span>
+                    <div id="modalFinalScore" class="text-4xl font-black text-emerald-600">0</div>
+                </div>
+
+                <!-- Certificate Canvas Preview (Visible if Win) -->
+                <div id="certContainer" class="hidden my-3">
+                    <div class="text-xs font-bold text-amber-800 mb-1">📜 Sertifikat Keberhasilanmu:</div>
+                    <canvas id="certCanvas" width="800" height="600" class="w-full rounded-xl border-2 border-amber-400 shadow-md"></canvas>
+                    <button onclick="downloadCertificate()" class="mt-3 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition flex items-center justify-center space-x-2">
+                        <span>📥</span> <span>Download Sertifikat</span>
+                    </button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-4 space-y-2">
+                    <button onclick="restartGame()" class="w-full py-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-teal-950 font-black rounded-xl shadow-md text-lg active:scale-95 transition">
+                        🔄 Coba Lagi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ================= DATA KOSAKATA (10 ITEMS) ================= */
+        const VOCAB_DATA = [
+            { id: 1,  emoji: '🎒', indo: 'Tas',          arabic: 'حَقِيبَةٌ',        latin: 'Ḥaqībatun' },
+            { id: 2,  emoji: '📚', indo: 'Buku',         arabic: 'كِتَابٌ',          latin: 'Kitābun' },
+            { id: 3,  emoji: '📓', indo: 'Buku Tulis',   arabic: 'دَفْتَرٌ',          latin: 'Daftarun' },
+            { id: 4,  emoji: '✏️', indo: 'Pensil',       arabic: 'قَلَمُ الرَّصَاصِ', latin: 'Qalamur-raṣāṣi' },
+            { id: 5,  emoji: '🖋️', indo: 'Pulpen',       arabic: 'قَلَمٌ',            latin: 'Qalamun' },
+            { id: 6,  emoji: '📏', indo: 'Penggaris',    arabic: 'مِسْطَرَةٌ',        latin: 'Misṭaratun' },
+            { id: 7,  emoji: '🧽', indo: 'Penghapus',    arabic: 'مِمْحَاةٌ',         latin: 'Mimḥātun' },
+            { id: 8,  emoji: '👝', indo: 'Tempat Pensil',arabic: 'مِقْلَمَةٌ',        latin: 'Miqlamatun' },
+            { id: 9,  emoji: '🪑', indo: 'Kursi',        arabic: 'كُرْسِيٌّ',        latin: 'Kursiyyun' },
+            { id: 10, emoji: '🗄️', indo: 'Meja',         arabic: 'مَكْتَبٌ',         latin: 'Maktabun' }
+        ];
+
+        let playerName = "";
+        let score = 0;
+        let lives = 3;
+        let timeLeft = 60;
+        let gameActive = false;
+        let currentTarget = null;
+        let activeCards = [];
+        
+        // Timers & Loops references
+        let gameTimerInterval = null;
+        let spawnTimerTimeout = null;
+        let animationFrameId = null;
+
+        // Audio Context initialization for sound effects
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Sound effect: "Ting!" (Correct Answer)
+        function playTingSound() {
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } catch (e) {
+                console.log("Audio play error", e);
+            }
+        }
+
+        // Sound effect: "Tetot!" (Wrong Answer / Missed Card)
+        function playTetotSound() {
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+                
+                // Oscillator 1
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(150, now);
+                osc1.frequency.linearRampToValueAtTime(100, now + 0.3);
+
+                gain1.gain.setValueAtTime(0.3, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+
+                osc1.start(now);
+                osc1.stop(now + 0.3);
+            } catch (e) {
+                console.log("Audio play error", e);
+            }
+        }
+
+        function startGame() {
+            const input = document.getElementById('playerNameInput').value.trim();
+            playerName = input ? input : "Pemain Hebat";
+
+            initAudio();
+
+            // Hide Start Screen, Show Gameplay Screen
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+
+            // Reset Game Variables
+            score = 0;
+            lives = 3;
+            timeLeft = 60;
+            gameActive = true;
+            activeCards = [];
+            
+            // Clear Play Area
+            document.getElementById('playArea').innerHTML = '';
+
+            // Update HUD
+            updateHUD();
+
+            // Select initial target
+            pickNewTarget();
+
+            // Start Timers & Loops
+            startTimer();
+            scheduleNextSpawn();
+            gameLoop();
+        }
+
+        function updateHUD() {
+            document.getElementById('hudScore').innerText = score;
+            document.getElementById('hudTimer').innerText = timeLeft + "s";
+            
+            // Render Hearts
+            let heartsHtml = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < lives) {
+                    heartsHtml += '<span class="animate-pop inline-block">❤️</span>';
+                } else {
+                    heartsHtml += '<span class="opacity-30 grayscale">🖤</span>';
+                }
+            }
+            document.getElementById('hudLives').innerHTML = heartsHtml;
+        }
+
+        function pickNewTarget() {
+            // Pick a random vocabulary item
+            const randomIndex = Math.floor(Math.random() * VOCAB_DATA.length);
+            currentTarget = VOCAB_DATA[randomIndex];
+
+            // Render on Target Box
+            document.getElementById('targetEmoji').innerText = currentTarget.emoji;
+            document.getElementById('targetIndo').innerText = currentTarget.indo.toUpperCase();
+        }
+
+        function spawnCard() {
+            if (!gameActive) return;
+
+            const playArea = document.getElementById('playArea');
+            const playAreaWidth = playArea.clientWidth;
+
+            // 40% chance to spawn the exact matching target item, 60% chance for random item
+            let vocabItem;
+            if (Math.random() < 0.4) {
+                vocabItem = currentTarget;
+            } else {
+                vocabItem = VOCAB_DATA[Math.floor(Math.random() * VOCAB_DATA.length)];
+            }
+
+            // Create DOM Card Element
+            const cardElem = document.createElement('div');
+            cardElem.className = 'falling-card absolute bg-white/95 rounded-2xl p-3 border-2 border-emerald-400 flex flex-col items-center justify-center text-center shadow-lg';
+            
+            // Size and position setting
+            const cardWidth = 110;
+            const maxLeft = playAreaWidth - cardWidth - 20;
+            const randomLeft = Math.max(10, Math.floor(Math.random() * maxLeft));
+
+            cardElem.style.width = cardWidth + 'px';
+            cardElem.style.left = randomLeft + 'px';
+            cardElem.style.top = '-80px';
+
+            cardElem.innerHTML = `
+                <div class="font-arabic text-2xl font-bold text-emerald-950 leading-tight pointer-events-none">${vocabItem.arabic}</div>
+                <div class="text-[11px] font-semibold text-teal-700 tracking-wide mt-1 pointer-events-none">${vocabItem.latin}</div>
+            `;
+
+            // Card position state
+            const cardObj = {
+                element: cardElem,
+                vocab: vocabItem,
+                y: -80,
+                speed: 1.8 + Math.random() * 1.2 + (score / 50) // Speed increases slightly with score
+            };
+
+            // Click / Tap Event
+            cardElem.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                handleCardClick(cardObj);
+            });
+
+            playArea.appendChild(cardElem);
+            activeCards.push(cardObj);
+        }
+
+        function scheduleNextSpawn() {
+            if (!gameActive) return;
+            spawnCard();
+            
+            // Random interval between 1.5s to 2.5s
+            const delay = 1500 + Math.random() * 1000;
+            spawnTimerTimeout = setTimeout(scheduleNextSpawn, delay);
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+
+            const playAreaHeight = document.getElementById('playArea').clientHeight;
+
+            for (let i = activeCards.length - 1; i >= 0; i--) {
+                const card = activeCards[i];
+                card.y += card.speed;
+                card.element.style.top = card.y + 'px';
+
+                // Check if card hit the bottom limit
+                if (card.y > playAreaHeight - 70) {
+                    // If the missed card was the correct target, deduct a life
+                    if (card.vocab.id === currentTarget.id) {
+                        triggerMissEffect();
+                    }
+                    
+                    // Remove card
+                    card.element.remove();
+                    activeCards.splice(i, 1);
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function handleCardClick(cardObj) {
+            if (!gameActive) return;
+
+            if (cardObj.vocab.id === currentTarget.id) {
+                // CORRECT ANSWER!
+                playTingSound();
+                score += 10;
+                
+                // Visual feedback pop
+                showFloatingFeedback(cardObj.element, "+10", "text-yellow-300");
+                triggerGreenFlash();
+
+                // Remove card
+                cardObj.element.remove();
+                activeCards = activeCards.filter(c => c !== cardObj);
+
+                // Update HUD & Pick new target
+                updateHUD();
+                pickNewTarget();
+            } else {
+                // WRONG ANSWER!
+                playTetotSound();
+                lives -= 1;
+
+                showFloatingFeedback(cardObj.element, "Salah! ❌", "text-red-400");
+                triggerRedShake();
+
+                // Remove card
+                cardObj.element.remove();
+                activeCards = activeCards.filter(c => c !== cardObj);
+
+                updateHUD();
+
+                if (lives <= 0) {
+                    endGame();
+                }
+            }
+        }
+
+        function triggerMissEffect() {
+            playTetotSound();
+            lives -= 1;
+            triggerRedShake();
+            updateHUD();
+
+            if (lives <= 0) {
+                endGame();
+            } else {
+                pickNewTarget();
+            }
+        }
+
+        function showFloatingFeedback(targetElem, text, colorClass) {
+            const rect = targetElem.getBoundingClientRect();
+            const feedback = document.createElement('div');
+            feedback.className = `absolute z-30 font-black text-2xl drop-shadow-md animate-bounce ${colorClass}`;
+            feedback.style.left = (rect.left + rect.width / 4) + 'px';
+            feedback.style.top = rect.top + 'px';
+            feedback.innerText = text;
+
+            document.body.appendChild(feedback);
+            setTimeout(() => feedback.remove(), 800);
+        }
+
+        function triggerGreenFlash() {
+            const playArea = document.getElementById('playArea');
+            playArea.classList.add('bg-emerald-300/30');
+            setTimeout(() => playArea.classList.remove('bg-emerald-300/30'), 200);
+        }
+
+        function triggerRedShake() {
+            const container = document.getElementById('appContainer');
+            container.classList.add('animate-shake');
+            setTimeout(() => container.classList.remove('animate-shake'), 400);
+        }
+
+        function startTimer() {
+            gameTimerInterval = setInterval(() => {
+                if (!gameActive) return;
+                timeLeft--;
+                updateHUD();
+
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(gameTimerInterval);
+            clearTimeout(spawnTimerTimeout);
+            cancelAnimationFrame(animationFrameId);
+
+            // Show End Modal
+            document.getElementById('endModal').classList.remove('hidden');
+            document.getElementById('modalFinalScore').innerText = score;
+
+            const isWin = score > 50 && lives > 0;
+
+            if (isWin) {
+                document.getElementById('modalWinHeader').classList.remove('hidden');
+                document.getElementById('modalLoseHeader').classList.add('hidden');
+                document.getElementById('certContainer').classList.remove('hidden');
+                
+                // Generate Canvas Certificate
+                generateCertificate();
+            } else {
+                document.getElementById('modalLoseHeader').classList.remove('hidden');
+                document.getElementById('modalWinHeader').classList.add('hidden');
+                document.getElementById('certContainer').classList.add('hidden');
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('endModal').classList.add('hidden');
+            startGame();
+        }
+
+        function generateCertificate() {
+            const canvas = document.getElementById('certCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Canvas Dimensions: 800 x 600
+            ctx.clearRect(0, 0, 800, 600);
+
+            // 1. Background Fill
+            ctx.fillStyle = "#fffdf0";
+            ctx.fillRect(0, 0, 800, 600);
+
+            // 2. Decorative Double Border (Gold & Teal)
+            ctx.strokeStyle = "#d97706"; // Amber/Gold
+            ctx.lineWidth = 12;
+            ctx.strokeRect(20, 20, 760, 560);
+
+            ctx.strokeStyle = "#0d9488"; // Teal
+            ctx.lineWidth = 4;
+            ctx.strokeRect(34, 34, 732, 532);
+
+            // Corner Ribbons / Ornaments
+            ctx.fillStyle = "#f59e0b";
+            ctx.fillRect(20, 20, 40, 40);
+            ctx.fillRect(740, 20, 40, 40);
+            ctx.fillRect(20, 540, 40, 40);
+            ctx.fillRect(740, 540, 40, 40);
+
+            // 3. Header Text
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#0f766e";
+            ctx.font = "bold 32px 'Fredoka', sans-serif";
+            ctx.fillText("SERTIFIKAT KELULUSAN", 400, 100);
+
+            ctx.fillStyle = "#b45309";
+            ctx.font = "bold 20px 'Fredoka', sans-serif";
+            ctx.fillText("⭐ AHLI MUFRADAT BAHASA ARAB ⭐", 400, 140);
+
+            // Line Separator
+            ctx.beginPath();
+            ctx.moveTo(250, 160);
+            ctx.lineTo(550, 160);
+            ctx.strokeStyle = "#d97706";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 4. Recipient Name
+            ctx.fillStyle = "#334155";
+            ctx.font = "18px 'Fredoka', sans-serif";
+            ctx.fillText("Diberikan kepada siswa berprestasi:", 400, 210);
+
+            ctx.fillStyle = "#047857";
+            ctx.font = "bold 40px 'Fredoka', sans-serif";
+            ctx.fillText(playerName, 400, 270);
+
+            // 5. Description Text
+            ctx.fillStyle = "#475569";
+            ctx.font = "16px 'Fredoka', sans-serif";
+            ctx.fillText("Telah berhasil menyelesaikan tantangan game edukasi", 400, 330);
+            
+            ctx.font = "bold 18px 'Fredoka', sans-serif";
+            ctx.fillStyle = "#0f766e";
+            ctx.fillText('"Tangkap Mufradat: Alat Sekolahku (الأَدَوَاتُ المَدْرَسِيَّةُ)"', 400, 360);
+
+            ctx.font = "16px 'Fredoka', sans-serif";
+            ctx.fillStyle = "#475569";
+            ctx.fillText(`Dengan Skor Akhir Sangat Memuaskan: ${score} Poin`, 400, 400);
+
+            // 6. Date & Seal
+            const today = new Date().toLocaleDateString('id-ID', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            });
+
+            ctx.font = "14px 'Fredoka', sans-serif";
+            ctx.fillText(`Diterbitkan pada: ${today}`, 250, 480);
+
+            // Badge Seal Graphic
+            ctx.beginPath();
+            ctx.arc(580, 470, 45, 0, 2 * Math.PI);
+            ctx.fillStyle = "#f59e0b";
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#ffffff";
+            ctx.stroke();
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 13px 'Fredoka', sans-serif";
+            ctx.fillText("LULUS", 580, 465);
+            ctx.fillText("ISTIMEWA", 580, 482);
+        }
+
+        function downloadCertificate() {
+            const canvas = document.getElementById('certCanvas');
+            const imageURI = canvas.toDataURL('image/png');
+            
+            const link = document.createElement('a');
+            link.download = `Sertifikat_Mufradat_${playerName.replace(/\s+/g, '_')}.png`;
+            link.href = imageURI;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
